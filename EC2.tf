@@ -4,10 +4,10 @@ data "aws_key_pair" "Dev_KP_OH" {
 }
 
 resource "aws_instance" "instance-pro" {
-  ami           =  var.image_id
-  instance_type = var.instance_type
+  ami                    = var.image_id
+  instance_type          = var.instance_type
   vpc_security_group_ids = [aws_security_group.pro-sg.id]
-  key_name = data.aws_key_pair.Dev_KP_OH.key_name
+  key_name               = data.aws_key_pair.Dev_KP_OH.key_name
 
   user_data = <<-EOF
               #!/bin/bash
@@ -45,12 +45,17 @@ resource "aws_security_group" "pro-sg" {
   }
 
 
-   egress {
+  egress {
     from_port   = var.ALL_port
     to_port     = var.ALL_port
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+}
+
+output "public_ip" {
+  value       = aws_instance.instance-pro.public_ip
+  description = "The public IP address of the web server"
 }
 
 
