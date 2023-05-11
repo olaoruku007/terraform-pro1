@@ -33,3 +33,9 @@ variable "ALL_port" {
   type        = number
   default     = 0
 }
+
+variable "id" {
+  description = " The vpc_id to be used by the instance"
+  type        = string
+  default     = "vpc-0f9295df75cd034c7"
+}
