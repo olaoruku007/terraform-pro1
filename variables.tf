@@ -7,7 +7,7 @@ variable "region" {
 variable "image_id" {
   description = " The ami to be used by the instance"
   type        = string
-  default     = "ami-0a04068a95e6a1cde"
+  default     = "ami-0a04fb51c1fd3e50e"
 }
 
 variable "instance_type" {

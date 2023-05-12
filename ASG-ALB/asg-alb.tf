@@ -19,17 +19,7 @@ resource "aws_launch_configuration" "instance-lc-asg" {
   instance_type   = var.instance_type
   security_groups = [aws_security_group.pro-sg.id]
   key_name        = data.aws_key_pair.Dev_KP_OH.key_name
-  user_data       = <<-EOF
-              #!/bin/bash
-              dnf update -y
-              dnf install figlet -y
-              dnf install httpd -y
-              systemctl enable httpd
-              systemctl start httpd
-              echo "Hello World! This is Wakandom Lomo." > /var/www/html/index.html
-              systemctl restart httpd
-              
-              EOF
+
 
   # Required when using a launch configuration with an ASG.
   lifecycle {
@@ -39,12 +29,25 @@ resource "aws_launch_configuration" "instance-lc-asg" {
 
 resource "aws_autoscaling_group" "pro-asg" {
   launch_configuration = aws_launch_configuration.instance-lc-asg.name
-  vpc_zone_identifier  = data.aws_subnets.default.ids
-  target_group_arns    = [aws_lb_target_group.asg.arn]
-  health_check_type    = "ELB"
-  min_size             = 2
-  
+  min_size             = 3
   max_size             = 3
+
+  vpc_zone_identifier = [
+    data.aws_subnets.default.ids[0],
+    data.aws_subnets.default.ids[1],
+    data.aws_subnets.default.ids[2]
+
+  ]
+  target_group_arns = [aws_lb_target_group.asg.arn]
+  health_check_type = "ELB"
+
+  depends_on = [
+    "aws_lb.terraform-alb"
+  ]
+
+  lifecycle {
+    create_before_destroy = true
+  }
 
   tag {
     key                 = "Name"
@@ -134,10 +137,10 @@ resource "aws_lb_target_group" "asg" {
     path                = "/"
     protocol            = "HTTP"
     matcher             = "200"
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 2
-    unhealthy_threshold = 2
+    interval            = 120
+    timeout             = 60
+    healthy_threshold   = 5
+    unhealthy_threshold = 5
   }
 }
 
