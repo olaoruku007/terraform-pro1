@@ -15,11 +15,21 @@ data "aws_subnets" "default" {
 }
 
 resource "aws_launch_configuration" "instance-lc-asg" {
-  image_id        = var.image_id
-  instance_type   = var.instance_type
-  security_groups = [aws_security_group.pro-sg.id]
-  key_name        = data.aws_key_pair.Dev_KP_OH.key_name
-
+  image_id                    = var.image_id
+  instance_type               = var.instance_type
+  security_groups             = [aws_security_group.pro-sg.id]
+  key_name                    = data.aws_key_pair.Dev_KP_OH.key_name
+  associate_public_ip_address = true
+  user_data                   = <<-EOF
+              #!/bin/bash
+              dnf update -y
+              dnf install httpd -y
+              systemctl enable httpd
+              systemctl start httpd
+              echo "Hello, World. This is Wakandom Lomo." > /var/www/html/index.html
+              systemctl restart httpd
+              
+              EOF
 
   # Required when using a launch configuration with an ASG.
   lifecycle {
@@ -29,8 +39,9 @@ resource "aws_launch_configuration" "instance-lc-asg" {
 
 resource "aws_autoscaling_group" "pro-asg" {
   launch_configuration = aws_launch_configuration.instance-lc-asg.name
-  min_size             = 3
-  max_size             = 3
+
+  min_size = 3
+  max_size = 3
 
   vpc_zone_identifier = [
     data.aws_subnets.default.ids[0],
@@ -45,7 +56,7 @@ resource "aws_autoscaling_group" "pro-asg" {
     aws_lb.terraform-alb
   ]
 
-    tag {
+  tag {
     key                 = "Name"
     value               = "terraform-pro-asg"
     propagate_at_launch = true
@@ -54,15 +65,14 @@ resource "aws_autoscaling_group" "pro-asg" {
 
 
 resource "aws_security_group" "pro-sg" {
-  name   = "terraform-pro1-sg"
+  name   = "terraform-pro-sg"
   vpc_id = data.aws_vpc.default.id
   ingress {
     from_port   = var.HTTP_port
     to_port     = var.HTTP_port
-    protocol    = "HTTP"
-    #security_groups = aws_security_group.alb.id
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
-
   ingress {
     from_port   = var.SSH_port
     to_port     = var.SSH_port
@@ -70,7 +80,6 @@ resource "aws_security_group" "pro-sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  
   egress {
     from_port   = var.ALL_port
     to_port     = var.ALL_port
@@ -84,8 +93,8 @@ resource "aws_lb" "terraform-alb" {
   load_balancer_type = "application"
   subnets            = data.aws_subnets.default.ids
   security_groups    = [aws_security_group.alb.id]
-    
-  
+
+
 }
 
 resource "aws_lb_listener" "http" {
@@ -120,29 +129,12 @@ resource "aws_security_group" "alb" {
   egress {
     from_port   = var.HTTP_port
     to_port     = var.HTTP_port
-    protocol    = "tcp" 
-    security_groups    = [aws_security_group.pro-sg.id]
-    
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+
   }
 }
 
-resource "aws_security_group_rule" "pro-sg-to-alb" {
-  type              = "ingress"
-  from_port         = var.HTTP_port
-  to_port           = var.HTTP_port
-  protocol          = "tcp"
-  source_security_group_id = aws_security_group.pro-sg.id
-  security_group_id = aws_security_group.alb.id
-}
-
-resource "aws_security_group_rule" "alb-to-pro-sg" {
-  type              = "egress"
-  from_port         = var.HTTP_port
-  to_port           = var.HTTP_port
-  protocol          = "tcp"
-  source_security_group_id = aws_security_group.alb.id
-  security_group_id = aws_security_group.pro-sg.id
-}
 
 resource "aws_lb_target_group" "asg" {
   name     = "terraform-asg-tg"
@@ -154,10 +146,10 @@ resource "aws_lb_target_group" "asg" {
     path                = "/"
     protocol            = "HTTP"
     matcher             = "200"
-    interval            = 30
-    timeout             = 25
-    healthy_threshold   = 8
-    unhealthy_threshold = 8
+    interval            = 15
+    timeout             = 3
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
   }
 }
 
