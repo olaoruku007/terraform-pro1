@@ -42,14 +42,10 @@ resource "aws_autoscaling_group" "pro-asg" {
   health_check_type = "ELB"
 
   depends_on = [
-    "aws_lb.terraform-alb"
+    aws_lb.terraform-alb
   ]
 
-  lifecycle {
-    create_before_destroy = true
-  }
-
-  tag {
+    tag {
     key                 = "Name"
     value               = "terraform-pro-asg"
     propagate_at_launch = true
@@ -63,8 +59,8 @@ resource "aws_security_group" "pro-sg" {
   ingress {
     from_port   = var.HTTP_port
     to_port     = var.HTTP_port
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    protocol    = "HTTP"
+    #security_groups = aws_security_group.alb.id
   }
 
   ingress {
@@ -74,7 +70,7 @@ resource "aws_security_group" "pro-sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-
+  
   egress {
     from_port   = var.ALL_port
     to_port     = var.ALL_port
@@ -88,6 +84,8 @@ resource "aws_lb" "terraform-alb" {
   load_balancer_type = "application"
   subnets            = data.aws_subnets.default.ids
   security_groups    = [aws_security_group.alb.id]
+    
+  
 }
 
 resource "aws_lb_listener" "http" {
@@ -120,11 +118,30 @@ resource "aws_security_group" "alb" {
 
   # Allow all outbound requests
   egress {
-    from_port   = var.ALL_port
-    to_port     = var.ALL_port
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = var.HTTP_port
+    to_port     = var.HTTP_port
+    protocol    = "tcp" 
+    security_groups    = [aws_security_group.pro-sg.id]
+    
   }
+}
+
+resource "aws_security_group_rule" "pro-sg-to-alb" {
+  type              = "ingress"
+  from_port         = var.HTTP_port
+  to_port           = var.HTTP_port
+  protocol          = "tcp"
+  source_security_group_id = aws_security_group.pro-sg.id
+  security_group_id = aws_security_group.alb.id
+}
+
+resource "aws_security_group_rule" "alb-to-pro-sg" {
+  type              = "egress"
+  from_port         = var.HTTP_port
+  to_port           = var.HTTP_port
+  protocol          = "tcp"
+  source_security_group_id = aws_security_group.alb.id
+  security_group_id = aws_security_group.pro-sg.id
 }
 
 resource "aws_lb_target_group" "asg" {
@@ -137,10 +154,10 @@ resource "aws_lb_target_group" "asg" {
     path                = "/"
     protocol            = "HTTP"
     matcher             = "200"
-    interval            = 120
-    timeout             = 60
-    healthy_threshold   = 5
-    unhealthy_threshold = 5
+    interval            = 30
+    timeout             = 25
+    healthy_threshold   = 8
+    unhealthy_threshold = 8
   }
 }
 
