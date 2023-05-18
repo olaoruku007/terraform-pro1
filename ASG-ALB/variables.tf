@@ -1,13 +1,13 @@
 variable "region" {
   description = "The region the resources will be launched"
   type        = string
-  default     = "us-east-2"
+  default     = "us-east-1"
 }
 
 variable "image_id" {
   description = " The ami to be used by the instance"
   type        = string
-  default     = "ami-0a04068a95e6a1cde"
+  default     = "ami-02978b79564e08f2f"
 }
 
 variable "instance_type" {
@@ -37,5 +37,11 @@ variable "ALL_port" {
 variable "id" {
   description = " The vpc_id to be used by the instance"
   type        = string
-  default     = "vpc-0f9295df75cd034c7"
+  default     = "vpc-0e1d3ed0fa157e81a"
+}
+
+variable "key_pair_name" {
+  description = "Name of the AWS key pair"
+  type        = string
+  default     = "Dev_KP"
 }
