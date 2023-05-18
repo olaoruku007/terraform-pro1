@@ -1,18 +1,3 @@
-terraform {
-  backend "s3" {
-    # Replace this with your bucket name!
-    bucket         = "terraform-pro1-s3-bkt"
-    key            = "global/s3/terraform.tfstate"
-    region         = "us-east-2"
-
-    # Replace this with your DynamoDB table name!
-    dynamodb_table = "terraform-pro1-locks"
-    encrypt        = true
-  }
-}
-
-
-
 data "aws_key_pair" "Dev_KP" {
   key_name           = var.key_pair_name
   include_public_key = true
