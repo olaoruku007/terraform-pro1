@@ -60,6 +60,27 @@ resource "aws_subnet" "terraform-pro1" {
   }
 }
 
+resource "aws_subnet" "terraform-pro2" {
+  vpc_id                  = aws_vpc.terraform-pro.id
+  cidr_block              = "10.0.16.0/21"
+  availability_zone       = "us-west-1a"
+  map_public_ip_on_launch = false
+  tags = {
+    name = "terraform-pro-private1"
+  }
+}
+
+resource "aws_subnet" "terraform-pro3" {
+  vpc_id                  = aws_vpc.terraform-pro.id
+  cidr_block              = "10.0.24.0/21"
+  availability_zone       = "us-west-1b"
+  map_public_ip_on_launch = false
+  tags = {
+    name = "terraform-pro-private1"
+  }
+}
+
+
 resource "aws_internet_gateway" "terraform-pro-igw" {
   vpc_id = aws_vpc.terraform-pro.id
 
